@@ -4,6 +4,7 @@ import AnimatedTabIcon from "@/components/ui/AnimatedTabIcon";
 import { fetchSingleMetroData } from "@/services/api";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
+import LottieView from "lottie-react-native";
 import { Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const Index = () => {
@@ -63,7 +64,20 @@ const Index = () => {
             </View>
 
             <View style={styles.fareInfo}>
-                {!isLoading && <Text style={{ fontSize: 30, color: bgColor, fontWeight: "bold", textAlign: "center" }}>Please Select Station to get fare infomation</Text>}
+                {!isLoading && (
+                    <View style={styles.emptyStateContainer}>
+                        <LottieView
+                            source={require('../../assets/animations/noInfo.json')}
+                            autoPlay
+                            loop
+                            style={styles.animation}
+                        />
+                        <Text style={[styles.infoText, { color: bgColor }]}>
+                            Please select a station to get fare information
+                        </Text>
+                    </View>
+                )}
+
             </View>
 
             {isLoading && <Loader />}
@@ -124,7 +138,27 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         paddingHorizontal: 10,
         marginTop: 10
-    }
+    },
+    emptyStateContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 20,
+    },
+
+
+    animation: {
+        width: 200,
+        height: 200,
+    },
+    infoText: {
+        fontSize: 25,
+        fontWeight: "600",
+        color: "#00A693",
+        textAlign: "center",
+        lineHeight: 30,
+    },
+
 
 });
 

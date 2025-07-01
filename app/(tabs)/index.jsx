@@ -42,7 +42,7 @@ const Index = () => {
           Select from all the active metro networks given, and find a route map and fare info.
         </Text>
       </View>
-      <ScrollView style={{ marginTop: 20 }}
+      <ScrollView style={{ marginTop: 30 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleInvalidate} />
         }
