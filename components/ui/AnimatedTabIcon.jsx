@@ -1,33 +1,24 @@
-import Animated, {
-    Easing,
-    useAnimatedStyle,
-    withTiming,
-} from 'react-native-reanimated';
+import { StyleSheet, View } from 'react-native';
 import { IconSymbol } from './IconSymbol.jsx';
 
 const AnimatedTabIcon = ({ focused, icon, color, size = 28 }) => {
-    const animatedStyle = useAnimatedStyle(() => {
-        return {
-            transform: [
-                {
-                    scale: withTiming(focused ? 1.4 : 1, {
-                        duration: 300,
-                        easing: Easing.out(Easing.exp),
-                    }),
-                },
-            ],
-            opacity: withTiming(focused ? 1 : 0.6, {
-                duration: 300,
-                easing: Easing.out(Easing.exp),
-            }),
-        };
-    });
+    const style = {
+        opacity: focused ? 1 : 0.6,
+        transform: [{ scale: focused ? 1.4 : 1 }],
+    };
 
     return (
-        <Animated.View style={animatedStyle}>
+        <View style={[styles.iconWrapper, style]}>
             <IconSymbol size={size} name={icon} color={color} />
-        </Animated.View>
+        </View>
     );
 };
+
+const styles = StyleSheet.create({
+    iconWrapper: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+});
 
 export default AnimatedTabIcon;
