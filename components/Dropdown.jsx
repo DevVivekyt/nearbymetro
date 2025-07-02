@@ -9,7 +9,7 @@ const data = [
     { label: 'Kolkata Metro', value: 'kolkata' },
 ];
 
-const SearchableDropdown = ({ dynamicData }) => {
+const SearchableDropdown = ({ dynamicData, onValueChange }) => {
     const [value, setValue] = useState(null);
 
     return (
@@ -25,7 +25,9 @@ const SearchableDropdown = ({ dynamicData }) => {
                 value={value}
                 onChange={item => {
                     setValue(item.value);
+                    onValueChange?.(item);
                 }}
+
             />
         </View>
     );

@@ -3,7 +3,7 @@ import Animated, {
     useAnimatedStyle,
     withTiming,
 } from 'react-native-reanimated';
-import { IconSymbol } from './IconSymbol';
+import { IconSymbol } from './IconSymbol.jsx';
 
 const AnimatedTabIcon = ({ focused, icon, color, size = 28 }) => {
     const animatedStyle = useAnimatedStyle(() => {

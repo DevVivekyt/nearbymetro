@@ -17,6 +17,7 @@
     "app/+not-found.jsx",
     "app/_layout.jsx",
     "app/(metro-info)/metro-info.jsx",
-    "app/(tabs)/index.jsx"
+    "app/(tabs)/index.jsx",
+    "components/ui/IconSymbol.jsx"
   ]
 }
