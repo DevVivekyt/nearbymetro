@@ -2,30 +2,44 @@ import SearchableDropdown from "@/components/Dropdown";
 import Loader from "@/components/Loader";
 import AnimatedTabIcon from "@/components/ui/AnimatedTabIcon";
 import { fetchSingleMetroData, GetFareDetailsByStatiion } from "@/services/api";
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import LottieView from "lottie-react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { IconSymbol } from '../../components/ui/IconSymbol';
 import { ErrorMessage, formatTo12Hour } from "../../constants/config";
 
-
-const useFareDetails = () => {
-    return useMutation({
-        mutationFn: ({ id, payload }) => GetFareDetailsByStatiion(id, payload),
-    });
-};
-
 const Index = () => {
     const { name, id, bgColor } = useLocalSearchParams();
-    const { data, isLoading } = useQuery(["singleMetro", id], () => fetchSingleMetroData(id));
 
+    const [metroStations, setMetroStations] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [fareData, setFareData] = useState(null);
     const [selectedFromStation, setSelectedFromStation] = useState(null);
     const [selectedToStation, setSelectedToStation] = useState(null);
-    const [fareData, setFareData] = useState(null);
+    const [isFareLoading, setIsFareLoading] = useState(false);
 
-    const stationList = data?.map((station) => ({
+    // Fetch Metro Station Data
+    useEffect(() => {
+        const getMetroData = async () => {
+            try {
+                setIsLoading(true);
+                const response = await fetchSingleMetroData(id);
+                setMetroStations(response || []);
+            } catch (error) {
+                ErrorMessage("Failed to fetch metro data");
+                console.error(error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (id) {
+            getMetroData();
+        }
+    }, [id]);
+
+    const stationList = metroStations?.map((station) => ({
         label: station.Station_Name,
         value: station.Station_Code,
     }));
@@ -33,7 +47,6 @@ const Index = () => {
     const handleShare = async () => {
         try {
             const metroUrl = `https://www.nearbymetro.com/metro/${id}/farecalculation/${name}`;
-
             const result = await Share.share({
                 message: `Check out metro details and fare info for ${name} Metro 🚇 ${metroUrl}`,
             });
@@ -48,44 +61,36 @@ const Index = () => {
         }
     };
 
-
-    const { mutateAsync, isLoading: isFareLoading } = useFareDetails();
-
-
     const handleFareDetails = async () => {
         if (selectedFromStation && selectedToStation) {
             try {
+                setIsFareLoading(true);
                 const payload = {
                     startStationName: selectedFromStation.label,
                     endStationName: selectedToStation.label,
                 };
-
-                const response = await mutateAsync({ id, payload });
-                console.log(response);
-
-                setFareData(response)
-
+                const response = await GetFareDetailsByStatiion(id, payload);
+                setFareData(response);
             } catch (error) {
                 ErrorMessage("Failed to fetch fare details");
                 console.error(error);
+            } finally {
+                setIsFareLoading(false);
             }
         } else {
             ErrorMessage("Please select both stations");
         }
     };
 
-
     const InfoRow = ({ label, value, color, icon }) => (
         <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, { color }]}>{label}</Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
-                <IconSymbol size={16} name={icon} color={color} />
+                {icon && <IconSymbol size={16} name={icon} color={color} />}
                 <Text style={[styles.infoValue, { color }]}>{value ?? '-'}</Text>
             </View>
         </View>
     );
-
-
 
     return (
         <View style={[styles.container, { backgroundColor: bgColor }]}>
@@ -102,23 +107,24 @@ const Index = () => {
             <View style={styles.content}>
                 <View style={styles.card}>
                     <Text style={[styles.label, { color: bgColor }]}>From</Text>
-                    <SearchableDropdown dynamicData={stationList}
-                        onValueChange={(selectedItem) => {
-                            setSelectedFromStation(selectedItem)
-                        }}
+                    <SearchableDropdown
+                        dynamicData={stationList}
+                        onValueChange={setSelectedFromStation}
                     />
                 </View>
 
                 <View style={styles.card}>
                     <Text style={[styles.label, { color: bgColor, paddingRight: 20 }]}>To</Text>
-                    <SearchableDropdown dynamicData={stationList}
-                        onValueChange={(selectedItem) => {
-                            setSelectedToStation(selectedItem);
-                        }}
+                    <SearchableDropdown
+                        dynamicData={stationList}
+                        onValueChange={setSelectedToStation}
                     />
                 </View>
 
-                <TouchableOpacity style={[styles.fareBtn, { backgroundColor: bgColor }]} onPress={handleFareDetails}>
+                <TouchableOpacity
+                    style={[styles.fareBtn, { backgroundColor: bgColor }]}
+                    onPress={handleFareDetails}
+                >
                     <Text style={{ color: "#fff", fontSize: 16 }}>Get Fare</Text>
                 </TouchableOpacity>
             </View>
@@ -136,59 +142,53 @@ const Index = () => {
                             Please select a station to get fare information
                         </Text>
                     </View>
-                ) : <ScrollView style={{ width: "100%" }}>
-                    <View style={styles.fareCardWrapper}>
-                        <View style={styles.fareCard}>
-                            <InfoRow label="TOKEN FARE" value={fareData?.fare?.Fare_Value} color={bgColor} icon={"indian.rupee"} />
-                            <InfoRow label="NUMBER OF INTERCHANGES" value={fareData?.interchanges} color={bgColor} icon={"arrow-right-arrow-left"} />
-                            <InfoRow label="NUMBER OF STATION" value={fareData?.stationNames?.length} color={bgColor} icon={"circle.m"} />
-                            <InfoRow label="METRO GO SMART CARD FARE" value={fareData?.fare?.Smart_Card_Fare} color={bgColor} icon={"smart-card"} />
-                            <InfoRow label="TRAVEL TIME" value={fareData?.fare?.Travel_Time} color={bgColor} />
-                            <InfoRow label="FIRST TRAIN TIMING" value={formatTo12Hour(fareData?.fare?.First_Metro)} color={bgColor} />
-                            <InfoRow label="LAST TRAIN TIMING" value={formatTo12Hour(fareData?.fare?.Last_Metro)} color={bgColor} />
-                        </View>
+                ) : (
+                    <ScrollView style={{ width: "100%" }}>
+                        <View style={styles.fareCardWrapper}>
+                            <View style={styles.fareCard}>
+                                <InfoRow label="TOKEN FARE" value={fareData?.fare?.Fare_Value} color={bgColor} icon={"indian.rupee"} />
+                                <InfoRow label="NUMBER OF INTERCHANGES" value={fareData?.interchanges} color={bgColor} icon={"arrow-right-arrow-left"} />
+                                <InfoRow label="NUMBER OF STATION" value={fareData?.stationNames?.length} color={bgColor} icon={"circle.m"} />
+                                <InfoRow label="METRO GO SMART CARD FARE" value={fareData?.fare?.Smart_Card_Fare} color={bgColor} icon={"smart-card"} />
+                                <InfoRow label="TRAVEL TIME" value={fareData?.fare?.Travel_Time} color={bgColor} />
+                                <InfoRow label="FIRST TRAIN TIMING" value={formatTo12Hour(fareData?.fare?.First_Metro)} color={bgColor} />
+                                <InfoRow label="LAST TRAIN TIMING" value={formatTo12Hour(fareData?.fare?.Last_Metro)} color={bgColor} />
+                            </View>
 
-                        <View style={styles.stationList}>
-                            <Text style={[styles.stationListTitle, { color: bgColor, borderColor: bgColor }]}>STATION SUMMARY</Text>
+                            <View style={styles.stationList}>
+                                <Text style={[styles.stationListTitle, { color: bgColor, borderColor: bgColor }]}>STATION SUMMARY</Text>
+                                {fareData?.stationNames?.map((station, index) => {
+                                    let stationName = '';
+                                    if (Array.isArray(station)) {
+                                        stationName = station[0];
+                                    } else if (typeof station === 'object' && station !== null) {
+                                        stationName = station.Station_Name;
+                                    } else if (typeof station === 'string') {
+                                        stationName = station;
+                                    }
 
-                            {fareData?.stationNames?.map((station, index) => {
-                                let stationName = '';
-
-                                if (Array.isArray(station)) {
-                                    stationName = station[0];
-                                } else if (typeof station === 'object' && station !== null) {
-                                    stationName = station.Station_Name;
-                                } else if (typeof station === 'string') {
-                                    stationName = station;
-                                }
-
-                                return (
-                                    <View key={index} style={styles.stationItem}>
-                                        <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-                                            <IconSymbol name="circle.m" size={14} color={bgColor} />
-                                            <Text style={[styles.stationText, { color: bgColor }]}>{stationName}</Text>
+                                    return (
+                                        <View key={index} style={styles.stationItem}>
+                                            <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                                                <IconSymbol name="circle.m" size={14} color={bgColor} />
+                                                <Text style={[styles.stationText, { color: bgColor }]}>{stationName}</Text>
+                                            </View>
+                                            <IconSymbol name="arrow.down.full" size={14} color={bgColor} />
                                         </View>
-                                        <IconSymbol name="arrow.down.full" size={14} color={bgColor} />
-                                    </View>
-                                );
-                            })}
+                                    );
+                                })}
+                            </View>
                         </View>
-
-
-                    </View>
-                </ScrollView>
-
-                }
-
-
-
+                    </ScrollView>
+                )}
             </View>
 
             {(isLoading || isFareLoading) && <Loader />}
-
         </View>
     );
 };
+
+
 
 const styles = StyleSheet.create({
     container: {

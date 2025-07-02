@@ -2,22 +2,34 @@ import Loader from "@/components/Loader";
 import { useGlobalContext } from '@/constants/context/GlobalContext';
 import { fetchMetroData } from "@/services/api";
 import { useFocusEffect } from '@react-navigation/native';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 
 const Index = () => {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setisLoading] = useState(false);
+  const [stationData, setstationData] = useState([]);
   const { setTitle, setBgColor, setMetroId } = useGlobalContext();
-  const { data, isLoading, error } = useQuery(['metro'], fetchMetroData);
 
-  const handleInvalidate = () => {
+
+  useEffect(() => {
+    const GetStationData = async () => {
+      setisLoading(true)
+      const response = await fetchMetroData()
+      setstationData(response)
+      setisLoading(false)
+    }
+    GetStationData()
+  }, [])
+
+
+  const handleInvalidate = async () => {
     setRefreshing(true)
-    queryClient.invalidateQueries(['metro']);
+    const response = await fetchMetroData()
+    setstationData(response)
     setRefreshing(false)
   };
 
@@ -48,7 +60,7 @@ const Index = () => {
         }
 
       >
-        {data && data.map((item, index) => (
+        {stationData && stationData.map((item, index) => (
           <TouchableOpacity
             key={index}
             style={{
